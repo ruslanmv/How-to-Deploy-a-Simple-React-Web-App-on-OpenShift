@@ -490,10 +490,10 @@ Before pushing to OpenShift, verify it works locally:
 
 ```bash
 # Build and tag
-docker build -t ruslanmv/hello-react:latest .
+docker build -t ruslanmv/hello-react:1.0.0 .
 
 # Run and map port 8080 → 8080
-docker run --rm -p 8080:8080 ruslanmv/hello-react:latest
+docker run --rm -p 8080:8080 ruslanmv/hello-react:1.0.0
 ```
 
 Visit [http://localhost:8080](http://localhost:8080) and you should see your “Hello, world!” page—no permission or filesystem errors in the logs.
@@ -796,15 +796,15 @@ This revised section now uses your specified example values for CPU and Memory r
 ![](assets/2025-05-10-19-29-02.png)
 ### Alternative via Web Console: Using a BuildConfig (from Dockerfile in Git)
 
-If your code (including the `Dockerfile`) is in a Git repository and you want OpenShift to build the image for you (as hinted by the `image_c14305.png` screenshot showing "Create BuildConfig"):
+If your code (including the `Dockerfile`) is in a Git repository and you want OpenShift to build  "Create BuildConfig":
 
 1.  Click **`+Add`**.
 2.  Choose **`From Git`**.
 3.  Enter your Git Repository URL.
 4.  OpenShift usually detects the Dockerfile. If not, you might need to specify the "Dockerfile" strategy under advanced options.
 5.  Configure the application name, resource name, and ensure "Create a route" is selected.
-6.  OpenShift will create a `BuildConfig`, an `ImageStream`, build the image, and then deploy it. You can find the "Create BuildConfig" form (similar to your provided screenshot `image_c14305.png`) if you navigate through "Builds" -\> "BuildConfigs" -\> "Create BuildConfig" or if this option appears in the `+Add` flow for more advanced Git import scenarios.
-      * **Screenshot Context (`image_c14305.png`):** The fields visible in your screenshot ("Name", "Source type", "Images - Build from", "Push to") are part of the `BuildConfig` creation. If you select "Git Repository" as `Source type`, you provide the Git URL. "Push to" would typically be an "Image Stream Tag" within OpenShift.
+6.  OpenShift will create a `BuildConfig`, an `ImageStream`, build the image, and then deploy it. You can find the "Create BuildConfig" form  if you navigate through "Builds" -\> "BuildConfigs" -\> "Create BuildConfig" or if this option appears in the `+Add` flow for more advanced Git import scenarios.
+      * **Screenshot Context :** The fields visible in your screenshot ("Name", "Source type", "Images - Build from", "Push to") are part of the `BuildConfig` creation. If you select "Git Repository" as `Source type`, you provide the Git URL. "Push to" would typically be an "Image Stream Tag" within OpenShift.
 
 
 
@@ -817,7 +817,7 @@ export KUBECONFIG=/path/to/your/downloaded.kubeconfig
 kubectl get nodes # Test connectivity
 ```
 
-Create the following YAML files in your `hello-react` project directory. Remember to replace `YOUR_REGISTRY/hello-react:1.0.0` with your actual image path.
+Create the following YAML files in your `hello-react` project directory. Remember to replace `ruslanmv/hello-react:1.0.0` with your actual image path.
 
 **`deployment.yaml`**
 
@@ -840,7 +840,7 @@ spec:
     spec:
       containers:
         - name: hello-react
-          image: YOUR_REGISTRY/hello-react:1.0.0 # <-- UPDATE THIS LINE
+          image: ruslanmv/hello-react:1.0.0 # <-- UPDATE THIS LINE
           ports:
             - containerPort: 80
           # Liveness and Readiness Probes (Recommended - See Improvements section)
@@ -940,12 +940,12 @@ Verify in the console or with `kubectl get pods -l app=hello-react`.
 1.  Make changes to your React app.
 2.  Rebuild your Docker image with a new tag (e.g., `1.0.1`):
     ```bash
-    docker build -t YOUR_REGISTRY/hello-react:1.0.1 .
-    docker push YOUR_REGISTRY/hello-react:1.0.1
+    docker build -t ruslanmv/hello-react:1.0.1 .
+    docker push ruslanmv/hello-react:1.0.1
     ```
 3.  Update the deployment to use the new image:
     ```bash
-    kubectl set image deployment/hello-react hello-react=YOUR_REGISTRY/hello-react:1.0.1
+    kubectl set image deployment/hello-react hello-react=ruslanmv/hello-react:1.0.1
     # Or edit deployment.yaml and kubectl apply -f deployment.yaml
     ```
 4.  Monitor the rollout:
