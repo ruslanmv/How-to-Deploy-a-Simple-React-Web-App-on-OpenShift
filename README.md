@@ -425,7 +425,6 @@ Open `http://localhost:3000` in your browser.
 ![](assets/2025-05-10-15-23-11.png)
 
 
-Here’s an updated **Section 4** for your blog—now tailored to OpenShift’s non-root requirements, using the unprivileged NGINX image, and including a local run example plus the deployment notes from our previous discussion.
 
 ---
 
@@ -470,7 +469,7 @@ EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
-### Explanation of Key Changes
+### Explanation 
 
 * **`nginxinc/nginx-unprivileged:stable-alpine`**
 
@@ -641,20 +640,17 @@ Or you can use the our script [build_and_push_icr.sh](build_and_push_icr.sh) you
 ![](assets/2025-05-10-16-31-17.png)
 
 
-
-
-
 ## 6. Deploying on OpenShift (Web Console)
 
 Once your `hello-react` application is containerized and the image is available in a container registry, you can deploy it to your OpenShift on ROKS cluster using the web console. This section will guide you through deploying your image using two common scenarios: from a private registry like IBM Cloud Container Registry (ICR) and from a public registry like Docker Hub.
 
 **A Note on Resource Quotas:**
-Your OpenShift project (`ibmid-667000nwl8-hktijvj4`) likely has ResourceQuotas in place. This means that when you deploy an application, you **must** specify **Resource Requests** (the amount of CPU/memory guaranteed to your container) and **Resource Limits** (the maximum amount of CPU/memory your container can use). If these are not defined, your deployment will be rejected with a "failed quota" error, similar to the one you encountered. We will cover setting these in the steps below.
+Your OpenShift project likely has ResourceQuotas in place. This means that when you deploy an application, you **must** specify **Resource Requests** (the amount of CPU/memory guaranteed to your container) and **Resource Limits** (the maximum amount of CPU/memory your container can use). If these are not defined, your deployment will be rejected with a "failed quota" error, similar to the one you encountered. We will cover setting these in the steps below.
 
 **Initial Steps in the OpenShift Web Console:**
 
 1.  **Log in to your ROKS console** and ensure you are in the **Developer** perspective.
-2.  Navigate to your target **Project** from the project dropdown list. For this guide, we'll assume your project is `ibmid-667000nwl8-hktijvj4`.
+2.  Navigate to your target **Project** from the project dropdown list.
 3.  In the left navigation pane, click the **`+Add`** button.
 
 From here, the steps will diverge slightly based on whether your image is in a private or public registry.
@@ -672,6 +668,10 @@ Private container registries require authentication. If you haven't already conf
 
 1.  **Navigate to Add Application**:
     * After the initial steps (logged in, correct project, click `+Add`), choose **"Container Image"**.
+![](assets/2025-05-10-19-52-12.png)
+
+
+    
 2.  **Fill in the Image Details**:
     * **Image name from external registry**: Enter the full path to your image in ICR:
         `us.icr.io/cc-667000nwl8-n8918mfv-cr/hello-react:1.0.0`
@@ -744,6 +744,8 @@ Deploying a **public** image from Docker Hub is generally simpler as it usually 
 2.  **Fill in the Image Details**:
     * **Image name from external registry**: Enter the path to your public Docker Hub image:
         `docker.io/ruslanmv/hello-react:1.0.0`
+![](assets/2025-05-10-19-53-05.png)
+
 3.  **Configure Application, Deployment, and Resource Limits**:
     * **Application Name**: e.g., `hello-react-dockerhub-app`.
     * **Name** (for Deployment resource): e.g., `hello-react-dockerhub`.
@@ -753,10 +755,12 @@ Deploying a **public** image from Docker Hub is generally simpler as it usually 
         * Set appropriate values for CPU Request, CPU Limit, Memory Request, and Memory Limit.
         * **Example values (Adjust as Needed):**
             * *CPU Request:* `1` (core)
-            * *CPU Limit:* `4` (cores)
-            * *Memory Request:* `64Mi`
-            * *Memory Limit:* `128Mi`
-        * **❗ Reminder:** The CPU values (`1 core` request, `4 cores` limit) are generous for a simple demo. Adjust all these values based on your application's actual needs and your project's available quotas.
+            * *CPU Limit:* `2` (cores)
+            * *Memory Request:* `128Mi`
+            * *Memory Limit:* `256Mi`
+        * **❗ Reminder:** The CPU values (`1 core` request, `2 cores` limit) are generous for a simple demo. Adjust all these values based on your application's actual needs and your project's available quotas.
+![](assets/2025-05-10-19-55-22.png)
+
 4.  **Configure Routing / Networking**:
     * Ensure **`Create a route to the Application`** is checked.
     * **Target port**: `80`.
@@ -989,6 +993,8 @@ Verify in the console or with `kubectl get pods -l app=hello-react`.
   * **Monitoring & Logging:**
       * OpenShift comes with a built-in monitoring stack (Prometheus, Grafana). Explore the "Observe" section in the OpenShift console.
       * Ensure your application logs to `stdout`/`stderr` so OpenShift can collect them. Access logs via `kubectl logs <pod-name>` or the console.
+![](assets/2025-05-10-19-57-40.png)
+
 
  Congratulations\! You’ve now gone from a blank Ubuntu box to a live React app on ROKS, with options to deploy via both the web console and `kubectl`.
 
