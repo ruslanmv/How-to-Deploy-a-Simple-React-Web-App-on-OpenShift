@@ -26,27 +26,6 @@ This guide provides a comprehensive walkthrough for deploying a React web applic
 
 
 
-**Explanation of Key Files and Directories:**
-
-* **`install_kubectl_ubuntu.sh`**: A standalone shell script to help set up `kubectl` on an Ubuntu/WSL environment.
-* **`hello-react/`**: The main project directory for your React application.
-    * **`Dockerfile`**: Defines the steps to build the Docker image for your React application, using Nginx to serve the static build.
-    * **`package.json`**: Lists project dependencies, scripts (like `start`, `build`, `test`), and other metadata.
-    * **`public/`**: Contains static assets like `index.html` (the main template), favicons, and images that are directly copied to the build output.
-    * **`src/`**: Contains the dynamic part of your React application – JavaScript components, CSS modules, etc.
-        * **`App.js`**: The root component of your application, modified to display the "Hello, world!" message as per the blog.
-        * **`index.js`**: The JavaScript entry point that renders the `App` component into the `index.html`.
-    * **`node_modules/`**: Created by `npm install` or `npm ci`. It contains all the downloaded dependencies. This directory is typically listed in `.gitignore` and not version-controlled.
-    * **`build/`**: Created by `npm run build`. It contains the optimized static assets (HTML, CSS, JavaScript bundles) that are served in production. This directory is also typically in `.gitignore`.
-    * **`deployment.yaml`**: Defines the desired state for your application's Deployment on Kubernetes/OpenShift (e.g., number of replicas, container image, ports).
-    * **`service.yaml`**: Defines how to expose your application's Pods as a network service with a stable IP address and DNS name within the cluster.
-    * **`route.yaml`**: An OpenShift-specific resource that defines how external traffic reaches your Service (creating a public URL).
-    * **`hpa.yaml`** (Optional): Defines rules for automatically scaling your application based on metrics like CPU utilization.
-
-This tree covers all the essential files you would create or significantly interact with while following the blog post. 
-
-
-Okay, here's the updated Section 1 for your blog post, incorporating the setup script:
 
 ## 1. Environment Setup (WSL/Ubuntu)
 
