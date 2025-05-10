@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: docker.io/ruslanmv/hello-react:1.0.0
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              cpu:    "100m"    # minimum guaranteed CPU
+              memory: "128Mi"   # minimum guaranteed memory
+            limits:
+              cpu:    "200m"    # maximum allowed CPU
+              memory: "256Mi"   # maximum allowed memory

@@ -1,0 +1,12 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: my-app
+spec:
+  to:
+    kind: Service
+    name: my-app-lb       # ← use the LoadBalancer service name
+  port:
+    targetPort: 80
+  # tls:
+  #   termination: edge
