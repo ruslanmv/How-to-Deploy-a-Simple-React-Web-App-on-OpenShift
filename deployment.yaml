@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4 # Or your desired namespace
+  labels:
+    app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
+    # app.openshift.io/runtime-version: 1.0.0 # This label was on the Route, can be added here too if desired
+    # app.openshift.io/runtime-namespace: ibmid-667000nwl8-hktijvj4 # This is usually for internal OpenShift use
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-react
+  template:
+    metadata:
+      labels:
+        app: hello-react
+        deployment: hello-react # Connects to the selector in the Service
+      # annotations:
+        # openshift.io/generated-by: kubectl # Optional: indicate how it was created
+    spec:
+      containers:
+        - name: hello-react
+          image: docker.io/ruslanmv/hello-react:1.0.0 # Your specified Docker image
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            limits:
+              cpu: '2'
+              memory: 256Mi
+            requests:
+              cpu: '1'
+              memory: 128Mi
+          imagePullPolicy: IfNotPresent # Or Always, if you want to ensure the latest image version is pulled every time
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600

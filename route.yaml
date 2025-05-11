@@ -1,0 +1,25 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
+  labels:
+    app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
+    app.openshift.io/runtime-version: "1.0.0"
+  annotations:
+    openshift.io/host.generated: "true"
+spec:
+  port:
+    targetPort: http-8080 # Reference the named port from the Service
+  to:
+    kind: Service
+    name: hello-react
+    weight: 100
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

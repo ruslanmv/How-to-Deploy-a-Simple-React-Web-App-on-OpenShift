@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
+  labels:
+    app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
+spec:
+  selector:
+    app: hello-react
+  ports:
+    - name: http-8080 # Explicitly name the port
+      protocol: TCP
+      port: 8080       # Service port
+      targetPort: 8080   # Container port
+  type: ClusterIP
