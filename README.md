@@ -830,8 +830,15 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4 # Or your desired namespace
   labels:
     app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
+    # app.openshift.io/runtime-version: 1.0.0 # This label was on the Route, can be added here too if desired
+    # app.openshift.io/runtime-namespace: ibmid-667000nwl8-hktijvj4 # This is usually for internal OpenShift use
 spec:
   replicas: 1
   selector:
@@ -841,25 +848,38 @@ spec:
     metadata:
       labels:
         app: hello-react
+        deployment: hello-react # Connects to the selector in the Service
+      # annotations:
+        # openshift.io/generated-by: kubectl # Optional: indicate how it was created
     spec:
       containers:
         - name: hello-react
-          image: ruslanmv/hello-react:1.0.0 # <-- UPDATE THIS LINE
+          image: docker.io/ruslanmv/hello-react:1.0.0 # Your specified Docker image
           ports:
-            - containerPort: 80
-          # Liveness and Readiness Probes (Recommended - See Improvements section)
-          # livenessProbe:
-          #   httpGet:
-          #     path: /
-          #     port: 80
-          #   initialDelaySeconds: 5
-          #   periodSeconds: 10
-          # readinessProbe:
-          #   httpGet:
-          #     path: /
-          #     port: 80
-          #   initialDelaySeconds: 5
-          #   periodSeconds: 10
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            limits:
+              cpu: '2'
+              memory: 256Mi
+            requests:
+              cpu: '1'
+              memory: 128Mi
+          imagePullPolicy: IfNotPresent # Or Always, if you want to ensure the latest image version is pulled every time
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
 ```
 
 **`service.yaml`**
@@ -869,16 +889,22 @@ apiVersion: v1
 kind: Service
 metadata:
   name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
   labels:
     app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
 spec:
-  type: ClusterIP # Default, exposes the service on an internal IP in the cluster
   selector:
-    app: hello-react # Must match the labels of the Pods
+    app: hello-react
   ports:
-    - protocol: TCP
-      port: 80       # Port the service will be available on within the cluster
-      targetPort: 80 # Port the container is listening on
+    - name: http-8080 # Explicitly name the port
+      protocol: TCP
+      port: 8080       # Service port
+      targetPort: 8080   # Container port
+  type: ClusterIP
 ```
 
 **`route.yaml` (OpenShift Specific)**
@@ -889,27 +915,101 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
   labels:
     app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
+    app.openshift.io/runtime-version: "1.0.0"
+  annotations:
+    openshift.io/host.generated: "true"
 spec:
+  port:
+    targetPort: http-8080 # Reference the named port from the Service
   to:
     kind: Service
-    name: hello-react # Name of the service to route to
-  port:
-    targetPort: 80 # Target port on the service (must match a port in the service definition)
-  # tls: # Optional: for HTTPS
-  #   termination: edge
-  #   # If using a custom domain, you might specify 'host' here.
-  #   # Otherwise, OpenShift will generate one.
+    name: hello-react
+    weight: 100
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
 ```
 
-Now, apply these configurations to your cluster:
+
+**Deployment**
+
+**Step 1: Ensure kubectl is Configured and Pointing to the Correct Namespace**
+
+If you haven't already, ensure your `kubectl` context is targeting the intended OpenShift cluster and namespace.
+
+```bash
+# Check current context
+kubectl config current-context
+
+# List available contexts
+kubectl config get-contexts
+
+# Switch to the correct context if needed
+# kubectl config use-context <your-openshift-context-name>
+
+# Set the default namespace for subsequent commands (optional, but helpful)
+# Replace 'ibmid-667000nwl8-hktijvj4' with your target namespace
+kubectl config set-context --current --namespace=ibmid-667000nwl8-hktijvj4
+
+# If the namespace doesn't exist, create it (if you haven't already and it's not a pre-existing project)
+# kubectl create namespace ibmid-667000nwl8-hktijvj4
+```
+
+
+
+
+
+
+
+
+
+
+
+
+**Step 2: Apply the `deployment.yaml` File**
+
+This command tells OpenShift to create or update the Deployment resource according to your `deployment.yaml` file. This will start pulling the Docker image and creating the pods.
 
 ```bash
 kubectl apply -f deployment.yaml
+```
+
+* You'll see output like: `deployment.apps/hello-react configured`.
+* The warning about the `last-applied-configuration` annotation is expected if this is the first `apply` for this resource (or if it was previously created differently) and is automatically handled by `kubectl`.
+
+**Step 3: Apply the `service.yaml` File**
+
+This command creates the Service resource, which provides an internal network endpoint (IP address and port) for your application pods.
+
+```bash
 kubectl apply -f service.yaml
+```
+
+* You'll see output like: `service/hello-react configured`.
+* A similar warning about the annotation might appear here too if it's the first apply for this service, which is also normal.
+
+**Step 4: Apply the `route.yaml` File**
+
+This command creates the Route resource, which exposes your Service to external traffic, making your application accessible via a URL.
+
+```bash
 kubectl apply -f route.yaml
 ```
+
+* You'll see output like: `route.route.openshift.io/hello-react configured`.
+* Again, the annotation warning is possible and normal on the first apply.
+
+
+
+
 
 Wait for the deployment to be ready:
 
@@ -926,12 +1026,58 @@ kubectl get route hello-react -o jsonpath='{.spec.host}'
 
 You should see an output like `hello-react-yourproject.yourclusterdomain.com`. Point your browser at `http://<that-host>`.
 
+
+
+**Step 5: Verify the Deployment**
+
+After applying all the files, check the status of your resources to ensure everything is running correctly.
+
+* **Check Deployments:**
+    ```bash
+    kubectl get deployments -n ibmid-667000nwl8-hktijvj4
+    ```
+    *(Ensure `READY` and `AVAILABLE` columns show the desired number of replicas, e.g., `1/1`)*
+
+* **Check Pods:**
+    ```bash
+    kubectl get pods -n ibmid-667000nwl8-hktijvj4 -w
+    ```
+    *(Watch ( `-w`) until the `hello-react` pod shows `STATUS` as `Running` and `READY` as `1/1`)*
+
+* **Check Services:**
+    ```bash
+    kubectl get services -n ibmid-667000nwl8-hktijvj4
+    ```
+    *(Ensure the `hello-react` service has an internal `CLUSTER-IP` and the correct `PORT(S)`)*
+
+* **Check Routes (and get the URL):**
+    ```bash
+    kubectl get routes -n ibmid-667000nwl8-hktijvj4
+    ```
+    *(This will list the route and its `HOST/PORT` which is the URL to access your application)*
+    You can also get more details:
+    ```bash
+    kubectl describe route hello-react -n ibmid-667000nwl8-hktijvj4
+    ```
+    *(Look for `Status.Ingress.Host` or a similar field for the exact URL)*
+
+**Step 6: Access Your Application**
+
+Open the URL obtained from the `kubectl get routes` or `kubectl describe route` command in your web browser.
+
+These are the comprehensive steps to deploy your application using `kubectl` and the provided YAML files. The key is to apply each resource definition in order (Deployment, then Service, then Route), and understand that the `kubectl apply` warning is part of its standard operation for new or unmanaged resources.
+
+###########
+
+
+
+
 ## 8\. Verification & Next Steps
 
   * **Topology View:** In the OpenShift Web Console, the **Topology** view should now show your `hello-react` application components (Deployment, Pod, Service, Route).
   * **Access App:** Clicking the hostname provided by the Route (either from `kubectl get route` or in the console's "Routes" section or Topology view) should open your “Hello, world\!” page.
 
-**Scale up replicas:**
+**Scale up replicas(Optional):**
 
 ```bash
 kubectl scale deployment hello-react --replicas=3
