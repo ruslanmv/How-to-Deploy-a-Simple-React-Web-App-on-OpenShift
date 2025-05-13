@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
+  labels:
+    app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-react
+  template:
+    metadata:
+      labels:
+        app: hello-react
+    spec:
+      imagePullSecrets:
+        - name: ibm-cr-pull-secret
+      containers:
+        - name: hello-react
+          image: us.icr.io/cc-667000nwl8-n8918mfv-cr/hello-react:1.0.0
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "1"
+              memory: "128Mi"
+            limits:
+              cpu: "2"
+              memory: "256Mi"
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always

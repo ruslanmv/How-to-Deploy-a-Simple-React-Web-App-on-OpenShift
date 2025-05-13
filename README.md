@@ -639,6 +639,214 @@ Or you can use the our script [build_and_push_icr.sh](build_and_push_icr.sh) you
 
 ![](assets/2025-05-10-16-31-17.png)
 
+## 6. Deploying on OpenShift (CLI)
+
+
+Deploy this private image:
+
+```
+us.icr.io/cc-667000nwl8-n8918mfv-cr/hello-react:1.0.0
+```
+
+in the OpenShift project (namespace):
+
+```
+ibmid-667000nwl8-hktijvj4
+```
+
+---
+
+ **Step 1: Login and Set the Project**
+
+```bash
+oc login https://<your-cluster-api>:6443 --token=<your-token>
+oc project ibmid-667000nwl8-hktijvj4
+```
+
+---
+
+ **Step 2: Create the Image Pull Secret**
+
+```bash
+oc create secret docker-registry ibm-cr-pull-secret \
+  --docker-server=us.icr.io \
+  --docker-username=iamapikey \
+  --docker-password=API_KEY_IBM_CLOUD \
+  --docker-email=your@email.com \
+  --namespace=ibmid-667000nwl8-hktijvj4
+```
+
+---
+
+ **Step 3: Link the Secret to the Default Service Account**
+
+```bash
+oc secrets link default ibm-cr-pull-secret --for=pull --namespace=ibmid-667000nwl8-hktijvj4
+```
+
+---
+
+**Step 4: Deploy the Application**
+
+### Option A: CLI-only (with `oc new-app` + resource patch)
+
+1. **Create Deployment & Service**
+
+   ```bash
+   oc new-app us.icr.io/cc-667000nwl8-n8918mfv-cr/hello-react:1.0.0 \
+     --name=hello-react \
+     --namespace=ibmid-667000nwl8-hktijvj4
+   ```
+
+2. **Add Resource Requests/Limits**
+
+   ```bash
+   oc set resources deployment/hello-react \
+     --requests=cpu=1,memory=128Mi \
+     --limits=cpu=2,memory=256Mi \
+     --namespace=ibmid-667000nwl8-hktijvj4
+   ```
+
+3. **Expose the Service**
+
+   ```bash
+   oc expose svc/hello-react \
+     --namespace=ibmid-667000nwl8-hktijvj4
+   ```
+
+---
+
+### Option B: YAML-based (with embedded resources)
+
+Create three files:
+
+#### `deployment-private.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
+  labels:
+    app: hello-react
+    app.kubernetes.io/component: hello-react
+    app.kubernetes.io/instance: hello-react
+    app.kubernetes.io/name: hello-react
+    app.kubernetes.io/part-of: hello-react-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-react
+  template:
+    metadata:
+      labels:
+        app: hello-react
+    spec:
+      imagePullSecrets:
+        - name: ibm-cr-pull-secret
+      containers:
+        - name: hello-react
+          image: us.icr.io/cc-667000nwl8-n8918mfv-cr/hello-react:1.0.0
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "1"
+              memory: "128Mi"
+            limits:
+              cpu: "2"
+              memory: "256Mi"
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+```
+
+#### `service-private.yaml`
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
+  labels:
+    app: hello-react
+spec:
+  selector:
+    app: hello-react
+  ports:
+    - name: http-8080
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+```
+
+#### `route-private.yaml`
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: hello-react
+  namespace: ibmid-667000nwl8-hktijvj4
+  labels:
+    app: hello-react
+spec:
+  port:
+    targetPort: http-8080
+  to:
+    kind: Service
+    name: hello-react
+    weight: 100
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+```
+
+Apply all three:
+
+```bash
+oc apply -f deployment-private.yaml
+oc apply -f service-private.yaml
+oc apply -f route-private.yaml
+```
+
+---
+
+ **Step 5: Verify Everything**
+
+1. **Check pod status**
+
+   ```bash
+   oc get pods -n ibmid-667000nwl8-hktijvj4
+   ```
+
+2. **Inspect any issues**
+
+   ```bash
+   oc describe pod <pod-name> -n ibmid-667000nwl8-hktijvj4
+   oc logs <pod-name> -n ibmid-667000nwl8-hktijvj4
+   ```
+
+   Look for `Successfully pulled image` and no `ImagePullBackOff`.
+
+3. **Get the external URL**
+
+   ```bash
+   oc get route hello-react -n ibmid-667000nwl8-hktijvj4
+   ```
+
+   Open the `HOST/PORT` in your browser to confirm the app is running.
+
+---
+
+You now have a **working deployment** that satisfies your cluster’s resource‐quota requirements, using either **CLI commands only** or **YAML manifests**.
+
+
 
 ## 6. Deploying on OpenShift (Web Console)
 
@@ -1052,10 +1260,6 @@ After applying all the files, check the status of your resources to ensure every
 Open the URL obtained from the `kubectl get routes` or `kubectl describe route` command in your web browser.
 
 These are the comprehensive steps to deploy your application using `kubectl` and the provided YAML files. The key is to apply each resource definition in order (Deployment, then Service, then Route), and understand that the `kubectl apply` warning is part of its standard operation for new or unmanaged resources.
-
-###########
-
-
 
 
 ## 8\. Verification & Next Steps
